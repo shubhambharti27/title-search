@@ -28,6 +28,7 @@ const ALIASES = {
 
 /** Installable trigger se chalta hai (installTrigger() ek baar chalao). Worksheet me edit/paste hote hi sync. */
 function handleEdit(e) {
+  if (e && e.range) SpreadsheetApp.getActive().toast('Task Sync chal raha hai: ' + e.range.getSheet().getName(), 'Task Sync', 3);
   if (!e || !e.range) return;
   const sh = e.range.getSheet();
   if (sh.getName() !== SOURCE_SHEET) return;
@@ -63,6 +64,7 @@ function syncRows_(src, from, to) {
     // Upar se neeche: Worksheet ki sabse neeche wali (latest) row sabse upar pahunchti hai.
     rows.forEach((row, i) => {
       const r = from + i;
+      try {
       const values = row.slice(0, DATA_COLS);
       const synced = String(row[STATUS_COL - 1]).indexOf('Synced') === 0;
       const id = String(row[ID_COL - 1]);
@@ -84,6 +86,9 @@ function syncRows_(src, from, to) {
       insertAtTop_(tab, values, newId);
       src.getRange(r, ID_COL).setValue(newId);
       cell.setValue('Synced ' + Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone(), 'dd MMM HH:mm') + ' -> ' + tab.getName());
+      } catch (err) {
+        src.getRange(r, STATUS_COL).setValue('ERROR: ' + err.message);
+      }
     });
   } finally {
     lock.releaseLock();
@@ -115,8 +120,8 @@ function insertAtTop_(tab, values, id) {
   if (old) old.remove();
   tab.insertRowAfter(top);
   tab.getRange(top, 1, 1, width).copyTo(tab.getRange(top + 1, 1, 1, width));
-  if (oldId) tab.getRange(top + 1, 1, 1, tab.getMaxColumns()).addDeveloperMetadata(META_KEY, oldId);
   tab.getRange(top, 1, 1, DATA_COLS).setValues([values]);
+  if (oldId) tab.getRange(top + 1, 1, 1, tab.getMaxColumns()).addDeveloperMetadata(META_KEY, oldId);
   tab.getRange(top, 1, 1, tab.getMaxColumns()).addDeveloperMetadata(META_KEY, id);
 }
 
