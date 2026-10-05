@@ -74,10 +74,15 @@ function syncRows_(src, from, to) {
       const id = String(row[ID_COL - 1]);
 
       if (synced) {
+        // Row poori khaali kar di gayi ho to sync ka nishaan hata do, taaki dobara bharne par nayi entry maani jaye.
+        if (values.every(v => String(v).trim() === '')) {
+          src.getRange(r, STATUS_COL, 1, 2).clearContent();
+          return;
+        }
         // Pehle se sync ho chuki row me baad me jo bhi column (A:J) badla, wo tab me update karo.
         const tab = findTab_(ss, String(row[WEBSITE_COL - 1]));
-        if (tab && id) updateExisting_(tab, id, values);
-        return;
+        if (tab && id && updateExisting_(tab, id, values)) return;
+        // Tab me wo row nahi mili (delete ho gayi) ya website badal gayi: neeche nayi entry ki tarah dobara daalo.
       }
       if (!REQUIRED_COLS.every(c => String(row[c - 1]).trim() !== '')) return;
 
@@ -131,9 +136,10 @@ function insertAtTop_(tab, values, id) {
 
 function updateExisting_(tab, id, values) {
   const m = metaRows_(tab, id)[0];
-  if (!m) return;
+  if (!m) return false;
   const r = m.getLocation().getRow().getRow();
   const cur = tab.getRange(r, 1, 1, DATA_COLS).getValues()[0];
   if (String(values[LAST_UPDATED_COL - 1]).trim() === '') values[LAST_UPDATED_COL - 1] = cur[LAST_UPDATED_COL - 1];
   tab.getRange(r, 1, 1, DATA_COLS).setValues([values]);
+  return true;
 }
