@@ -1,15 +1,15 @@
 /**
- * Sheet1 -> website tab auto-sync (Google Apps Script)
+ * Worksheet -> website tab auto-sync (Google Apps Script)
  *
- * Sheet1 me row bharo (A:J, same columns jaise baaki tabs me hain). Jaise hi row complete hoti hai,
+ * Worksheet me row bharo (A:J, same columns jaise baaki tabs me hain). Jaise hi row complete hoti hai,
  * wo us website ke tab me TOP par (header ke neeche) insert ho jaati hai; purana data neeche khisak jaata hai.
- * Sheet1 ki K me "Synced" aur L me ID aati hai; baad me A:J me koi bhi badlav tab me update hota hai.
+ * Worksheet ki K me "Synced" aur L me ID aati hai; baad me A:J me koi bhi badlav tab me update hota hai.
  */
 
-const SOURCE_SHEET = 'Sheet1';
+const SOURCE_SHEET = 'Worksheet';
 const HEADER_LABEL = 'Month';          // tab ki header row pehchaanne ke liye (column A)
 const WEBSITE_COL = 2;                 // B = Original Website Tag
-const STATUS_COL = 11;                 // K = Sync Status (Sheet1 me)
+const STATUS_COL = 11;                 // K = Sync Status (Worksheet me)
 const ID_COL = 12;                     // L = Sync ID (script khud bharti hai, mat chhedo)
 const META_KEY = 'syncId';
 const DATA_COLS = 10;                  // A:J copy hota hai
@@ -26,14 +26,20 @@ const ALIASES = {
   'pim data': 'PIM',
 };
 
-/** Simple trigger — koi setup nahi chahiye. Sheet1 me edit/paste hote hi chalta hai. */
-function onEdit(e) {
+/** Installable trigger se chalta hai (installTrigger() ek baar chalao). Worksheet me edit/paste hote hi sync. */
+function handleEdit(e) {
   if (!e || !e.range) return;
   const sh = e.range.getSheet();
   if (sh.getName() !== SOURCE_SHEET) return;
   const first = Math.max(e.range.getRow(), 2);
   const last = e.range.getLastRow();
   if (last >= first) syncRows_(sh, first, last);
+}
+
+/** EK BAAR chalao (Run dabao, permission Allow karo) — edit trigger install ho jaata hai. */
+function installTrigger() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'handleEdit').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('handleEdit').forSpreadsheet(SpreadsheetApp.getActive()).onEdit().create();
 }
 
 /** Menu se manually saari pending rows sync karne ke liye. */
@@ -54,7 +60,7 @@ function syncRows_(src, from, to) {
   try {
     const ss = src.getParent();
     const rows = src.getRange(from, 1, to - from + 1, ID_COL).getValues();
-    // Upar se neeche: Sheet1 ki sabse neeche wali (latest) row sabse upar pahunchti hai.
+    // Upar se neeche: Worksheet ki sabse neeche wali (latest) row sabse upar pahunchti hai.
     rows.forEach((row, i) => {
       const r = from + i;
       const values = row.slice(0, DATA_COLS);
