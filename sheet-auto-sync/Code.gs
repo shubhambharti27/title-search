@@ -31,7 +31,7 @@ function handleEdit(e) {
   if (e && e.range) SpreadsheetApp.getActive().toast('Task Sync chal raha hai: ' + e.range.getSheet().getName(), 'Task Sync', 3);
   if (!e || !e.range) return;
   const sh = e.range.getSheet();
-  if (sh.getName() !== SOURCE_SHEET) return;
+  if (sh.getName().trim().toLowerCase() !== SOURCE_SHEET.toLowerCase()) return;
   const first = Math.max(e.range.getRow(), 2);
   const last = e.range.getLastRow();
   if (last >= first) syncRows_(sh, first, last);
@@ -51,8 +51,12 @@ function onOpen() {
 }
 
 function syncAllPending() {
-  const sh = SpreadsheetApp.getActive().getSheetByName(SOURCE_SHEET);
-  if (sh && sh.getLastRow() >= 2) syncRows_(sh, 2, sh.getLastRow());
+  const ss = SpreadsheetApp.getActive();
+  const sh = ss.getSheets().find(s => s.getName().trim().toLowerCase() === SOURCE_SHEET.toLowerCase());
+  if (!sh) { ss.toast('Sheet "' + SOURCE_SHEET + '" nahi mili. Tab ke naam check karo.', 'Task Sync', 10); return; }
+  if (sh.getLastRow() < 2) { ss.toast('Worksheet me koi data row nahi hai.', 'Task Sync', 5); return; }
+  syncRows_(sh, 2, sh.getLastRow());
+  ss.toast('Sync pura hua. K column dekho.', 'Task Sync', 5);
 }
 
 function syncRows_(src, from, to) {
